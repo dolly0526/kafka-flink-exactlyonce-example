@@ -38,6 +38,7 @@ public class ExactlyOnceIpCount {
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime); // 按照EventTime来统计
         env.enableCheckpointing(5000); // 每5秒保存一次CheckPoint
+
         // 设置CheckPoint
         CheckpointConfig config = env.getCheckpointConfig();
         config.setCheckpointingMode(CheckpointingMode.EXACTLY_ONCE); // 设置CheckPoint模式为EXACTLY_ONCE
@@ -56,12 +57,10 @@ public class ExactlyOnceIpCount {
         ));
 
         // 定义输入：从Kafka中获取数据
-        DataStream<IpAndCount> input = env
-                .addSource(sourceConsumer);
+        DataStream<IpAndCount> input = env.addSource(sourceConsumer);
 
         // 计算：每5秒钟按照ip对count求和
-        DataStream<IpAndCount> output =
-                input
+        DataStream<IpAndCount> output = input
                 .keyBy(IpAndCount::getIp) // 按照ip地址统计
                 .window(TumblingEventTimeWindows.of(Time.seconds(5))) // 每5秒钟统计一次
                 .allowedLateness(Time.seconds(5))
@@ -69,12 +68,14 @@ public class ExactlyOnceIpCount {
 
         // 输出到kafka topic
         output.map(IpAndCount::toString).addSink(sinkProducer);
+//        output.map(IpAndCount::toString).print();
 
         // execute program
         env.execute("Exactly-once IpCount");
     }
 
     private static FlinkKafkaProducer011<String> setupSink() {
+
         // 设置Kafka Producer属性
         Properties producerProperties = new Properties();
         producerProperties.put("bootstrap.servers", "localhost:9092");
@@ -90,6 +91,7 @@ public class ExactlyOnceIpCount {
     }
 
     private static FlinkKafkaConsumer011<IpAndCount> setupSource() {
+
         // 设置Kafka Consumer属性
         Properties properties = new Properties();
         properties.setProperty("bootstrap.servers", "localhost:9092");
@@ -99,18 +101,18 @@ public class ExactlyOnceIpCount {
         FlinkKafkaConsumer011<IpAndCount> sourceConsumer =
                 new FlinkKafkaConsumer011<>("ip_count_source",
                         new AbstractDeserializationSchema<IpAndCount>() {
-            // 自定义反序列化消息的方法：将非结构化的以空格分隔的文本直接转成结构化数据IpAndCount
-            @Override
-            public IpAndCount deserialize(byte[] bytes) {
-                String str = new String(bytes, StandardCharsets.UTF_8);
-                String [] splt = str.split("\\s");
-                try {
-                    return new IpAndCount(new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss").parse(splt[0]),splt[1], 1L);
-                } catch (ParseException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }, properties);
+                            // 自定义反序列化消息的方法：将非结构化的以空格分隔的文本直接转成结构化数据IpAndCount
+                            @Override
+                            public IpAndCount deserialize(byte[] bytes) {
+                                String str = new String(bytes, StandardCharsets.UTF_8);
+                                String[] splt = str.split("\\s");
+                                try {
+                                    return new IpAndCount(new SimpleDateFormat("yyyy-MM-dd_HH:mm:ss").parse(splt[0]), splt[1], 1L);
+                                } catch (ParseException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+                        }, properties);
 
         // 告诉Flink时间从哪个字段中获取
         sourceConsumer.assignTimestampsAndWatermarks(new AscendingTimestampExtractor<IpAndCount>() {
@@ -122,5 +124,4 @@ public class ExactlyOnceIpCount {
         });
         return sourceConsumer;
     }
-
 }

@@ -21,15 +21,14 @@ import java.util.concurrent.TimeUnit;
  */
 public class NginxLogProducer {
     private static final Logger logger = LoggerFactory.getLogger(NginxLogProducer.class);
-    private final static List<String> ipList = Arrays.asList("192.168.1.1","192.168.1.2","192.168.1.3","192.168.1.4");
+    private final static List<String> ipList = Arrays.asList("192.168.1.1", "192.168.1.2", "192.168.1.3", "192.168.1.4");
     private final static String topic = "ip_count_source";
-    public static void main(String [] args) {
+
+    public static void main(String[] args) {
         Properties props = new Properties();
         props.put("bootstrap.servers", "localhost:9092");
-        props.put("key.serializer",
-                "org.apache.kafka.common.serialization.StringSerializer");
-        props.put("value.serializer",
-                "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 
         Producer<String, String> producer = new KafkaProducer<>(props);
 
@@ -44,17 +43,14 @@ public class NginxLogProducer {
                 final String msg = date + " " + ip;
                 ProducerRecord<String, String> record = new ProducerRecord<>(topic, ip, msg);
                 producer.send(record, (recordMetadata, e) -> {
-                    if(null != e) {
-
+                    if (e != null) {
                         logger.warn("Send failed: {}!", msg, e);
                         System.exit(1);
                     } else {
                         logger.info("Send success: {}.", msg);
                     }
                 });
-
             }
-        },0L, 1L, TimeUnit.SECONDS);
-
+        }, 0L, 1L, TimeUnit.SECONDS);
     }
 }
