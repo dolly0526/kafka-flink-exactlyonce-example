@@ -68,7 +68,6 @@ public class ExactlyOnceIpCount {
 
         // 输出到kafka topic
         output.map(IpAndCount::toString).addSink(sinkProducer);
-//        output.map(IpAndCount::toString).print();
 
         // execute program
         env.execute("Exactly-once IpCount");

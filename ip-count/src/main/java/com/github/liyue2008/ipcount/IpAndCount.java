@@ -12,7 +12,9 @@ public class IpAndCount {
     private String ip;
     private long count = 0L;
 
-    public IpAndCount(){}
+    public IpAndCount() {
+    }
+
     public IpAndCount(Date date, String ip, long count) {
         this.date = date;
         this.ip = ip;
